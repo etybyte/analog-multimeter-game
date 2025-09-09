@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Analog Multimeter</title>
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+  <div class="app">
+    <div class="card meter-wrap">
+      <h1>Analog Multimeter</h1>
+      <svg id="meter" viewBox="0 0 600 380" width="100%" height="100%" role="img" aria-label="Analog meter">
+        <defs>
+          <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+            <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="rgba(0,0,0,0.6)"/>
+          </filter>
+        </defs>
+        <rect x="10" y="10" width="580" height="360" rx="14" fill="#ffffff" stroke="#2a335a"/>
+
+        <!-- Scales drawn by JS -->
+        <g id="scale"></g>
+
+        <!-- Needle -->
+        <circle cx="300" cy="300" r="8" fill="#cccccc" stroke="#44518c"/>
+        <g id="needle" transform="rotate(-60, 300, 300)">
+          <!-- main needle from pivot to tip -->
+          <line x1="300" y1="300" x2="300" y2="70" stroke="#ff3b3b" stroke-width="2"/>
+          <!-- <polygon points="300,70 294,90 306,90" fill="#ff3b3b"/> -->
+        </g>
+
+        <text id="title" x="300" y="30" text-anchor="middle" font-size="16" fill="#000000">Range: DC Voltage - 50V</text>
+      </svg>
+    </div>
+
+    <div class="card">
+      <div class="row" style="grid-template-columns: repeat(2, 1fr);">
+        <div>
+          <label for="mode">Function</label>
+          <select id="mode" disabled>
+            <option value="dcv" selected>DC Voltage</option>
+            <option value="dca">DC Current</option>
+            <option value="ohms">Resistance (Ω)</option>
+          </select>
+        </div>
+        <div>
+          <label for="range">Range / Multiplier</label>
+          <select id="range" disabled></select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div style="grid-column: span 3;">
+          <label for="guess">Your reading</label>
+          <input type="text" id="guess" placeholder="e.g., 6.4, 1.2k, 75m" />
+        </div>
+        <div style="margin-left: 24px;">
+          <label for="tol">Tolerance ±<span id="tolVal">3</span>%</label>
+          <input type="range" id="tol" min="1" max="10" step="1" value="3" />
+        </div>
+        <div style="display:flex; gap:8px; align-items:end;">
+          <button class="primary" id="check">Check</button>
+          <button id="reveal">Reveal</button>
+        </div>
+      </div>
+
+      <div class="row" style="grid-template-columns: repeat(2, 1fr);">
+        <button id="new">New Needle</button>
+        <!-- <button id="shuffle">Shuffle Range</button> -->
+        <button id="reset">Reset Score</button>
+      </div>
+
+      <div id="feedback" class="feedback" style="height: 32px;"></div>
+
+      <div class="stat-grid">
+        <div class="stat"><span>Rounds</span><b id="stat-rounds">0</b></div>
+        <div class="stat"><span>Correct</span><b id="stat-correct">0</b></div>
+        <div class="stat"><span>Streak</span><b id="stat-streak">0</b></div>
+      </div>
+
+      <p class="notice">Practice choosing the <b>correct scale</b> and reading values in different ranges. Press <span class="kbd">Enter</span>  or click on check to guess.</p>
+      <p class="notice">Values default to the base unit for the given range. (1 = 1 Volt, 1 Amp, or 1 Ohm). Use suffixes — <span class="kbd">k</span>, <span class="kbd">M</span>, <span class="kbd">m</span>, <span class="kbd">µ</span>/<span class="kbd">u</span> for smaller or larger units, important for milliamp current ranges where 1 = 1 Amp not 1 mA.</p>
+    </div>
+  </div>
+
+  <script type="text/javascript" src="js/script.js"></script>
+</body>
+</html>
