@@ -67,17 +67,30 @@
     const m = s.match(/^([+-]?[0-9]*\.?[0-9]+)([a-zA-Z]*)$/);
     if (!m) return NaN;
     let val = parseFloat(m[1]);
-    const suf = (m[2]||'').toLowerCase();
-    const mul = suf === 'k' ? 1e3
+    const suf = (m[2]||'');
+    const mul = suf === 'G' ? 1e9
+              : suf === 'M' ? 1e6
+              : suf === 'k' ? 1e3
               : suf === 'm' ? 1e-3
               : suf === 'u' ? 1e-6
-              : suf === 'ma' ? 1e-3
-              : suf === 'ua' ? 1e-6
-              : suf === 'a' ? 1
-              : suf === 'v' ? 1
-              : suf === 'ohm' || suf === 'o' ? 1
-              : suf === 'kohm' || suf === 'ko' ? 1e3
-              : suf === 'mohm' || suf === 'mo' ? 1e6
+              : suf === 'GA' ? 1e9
+              : suf === 'MA' ? 1e6
+              : suf === 'kA' ? 1e3
+              : suf === 'A' ? 1
+              : suf === 'mA' ? 1e-3
+              : suf === 'uA' ? 1e-6
+              : suf === 'GV' ? 1e9
+              : suf === 'MV' ? 1e6
+              : suf === 'kV' ? 1e3
+              : suf === 'V' ? 1
+              : suf === 'mV' ? 1e-3
+              : suf === 'uV' ? 1e-6
+              : suf === 'Gohm' || suf === 'Go' || suf === 'GΩ' ? 1e9
+              : suf === 'Mohm' || suf === 'Mo' || suf === 'MΩ'  ? 1e6
+              : suf === 'kohm' || suf === 'ko' || suf === 'kΩ'  ? 1e3
+              : suf === 'ohm' || suf === 'o' || suf === 'Ω' ? 1
+              : suf === 'mohm' || suf === 'mo' || suf === 'mΩ' ? 1e-3
+              : suf === 'uohm'  || suf === 'uo' || suf === 'uΩ' ? 1e-6
               : suf === '' ? 1 : 1;
     return val * mul;
   }
