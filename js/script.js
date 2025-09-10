@@ -351,7 +351,7 @@
     rangeSel.selectedIndex = i;
     state.range = opts[i];
 
-    title.textContent = `Range: ${modelSel.options[modeSel.selectedIndex].text} - ${rangeSel.options[rangeSel.selectedIndex].text}`;
+    title.textContent = `Range: ${modeSel.options[modeSel.selectedIndex].text} - ${rangeSel.options[rangeSel.selectedIndex].text}`;
   }
 
   function shuffleMode(){
