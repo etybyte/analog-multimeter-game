@@ -12,7 +12,7 @@
   // Mode ranges
   const RANGES = {
     dcv: LINEAR_LABEL_SETS,     // Volts
-    dca: LINEAR_LABEL_SETS,     // milliamp ranges tied to same scales
+    dca: [5, 50, 500],     // milliamp ranges tied to same scales
     ohms: ["×1", "×10", "×100", "×1000"]
   };
 
