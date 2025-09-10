@@ -89,7 +89,7 @@ select, input[type="number"], input[type="text"] {
   border: 1px solid #2a335a;
   /* background: #ffffff; */
   color: var(--ink);
-  font-size: 14px;
+  font-size: 16px;
 }
 
 input[type="range"] {
