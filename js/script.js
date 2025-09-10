@@ -3,7 +3,7 @@
   const START_DEG = -60; // relative to vertical (top)
   const END_DEG   =  60;
   const SWEEP = END_DEG - START_DEG; // 120° sweep
-  const CENTER = { x: 300, y: 300 };
+  const CENTER = { x: 270, y: 255 };
   const R = 220;   // base radius for outermost scale
 
   // Stacked linear scale labels
