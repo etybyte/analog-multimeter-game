@@ -54,8 +54,8 @@
       return v.toFixed(2) + 'Ω';
     } else if (u === 'A'){
       const abs = Math.abs(v);
-      if (abs < 1e-3) return (v*1e6).toFixed(0) + 'µA';
-      if (abs < 1)   return (v*1e3).toFixed(0) + 'mA';
+      if (abs < 1e-3) return (v*1e6).toFixed(2) + 'µA';
+      if (abs < 1)   return (v*1e3).toFixed(3) + 'mA';
       return v.toFixed(3) + 'A';
     } else { // V
       const abs = Math.abs(v);
@@ -405,7 +405,7 @@
       // const tolPct = Number(tol.value);
       const target = state.trueValue;
       // const allowed = Math.max(0.001, (tolPct/100) * (state.mode==='ohms' ? Math.max(1, target) : currentLinearRangeValue()));
-      const allowed = Math.max(0.001, state.mode==='ohms' ? fractionTolerance(target, 0.005) : 0.015 * currentLinearRangeValue());
+      const allowed = Math.max(0.00001, state.mode==='ohms' ? fractionTolerance(target, 0.005) : 0.015 * currentLinearRangeValue());
       console.log(allowed);
       const diff = Math.abs(g - target);
       const win = diff <= allowed;
