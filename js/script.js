@@ -18,18 +18,22 @@
 
   // Mid‑scale ohms K values for Ω mapping (f = 1/(1 + R/K))
   const OHMS_K = { "×1": 20, "×10": 200, "×100": 2000, "×1000": 20000 };
+  const OHMS_MULT = {"×1": 1, "×10": 10, "×100": 100, "×1000": 1000}
+
+  let OHM_TICKS = [];
 
   // ====== State ======
   const state = { mode: 'dcv', range: 10, trueValue: 0, rounds: 0, correct: 0, streak: 0 };
 
   // ====== DOM ======
+  const app = document.getElementById('app');
   const scaleG = document.getElementById('scale');
   const needle = document.getElementById('needle');
   const title = document.getElementById('title');
   const modeSel = document.getElementById('mode');
   const rangeSel = document.getElementById('range');
-  const tol = document.getElementById('tol');
-  const tolVal = document.getElementById('tolVal');
+  // const tol = document.getElementById('tol');
+  // const tolVal = document.getElementById('tolVal');
   const guess = document.getElementById('guess');
   const feedback = document.getElementById('feedback');
   const statRounds = document.getElementById('stat-rounds');
@@ -193,6 +197,7 @@
     }
 
     function drawOhmTick(val, len, width){
+      OHM_TICKS.push(val);
       const deg = ohmDegCanvas(val);
       drawTickAt(baseOhm, deg, len, width, 'var(--ohm)', false);
     }
@@ -214,14 +219,24 @@
     // ---- Subdivisions ----
     // 0–2 : fifths
     (function(){
-      const a=0, b=2; const step=1/5; // 0.2
+      const a=0, b=1; const step=1/5; // 0.2
+      for (let t=a+step; t<b; t+=step){ drawOhmTick(t, 8, 1.2); }
+    })();
+
+    (function(){
+      const a=1, b=2; const step=1/5; // 0.2
       for (let t=a+step; t<b; t+=step){ drawOhmTick(t, 8, 1.2); }
     })();
 
     // 2–10 : halves and wholes (unlabeled)
     (function(){
-      for (let v=3; v<10; v++) drawOhmTick(v, 11, 1.6); // wholes
-      for (let v=2.5; v<10; v+=1) drawOhmTick(v, 8, 1.2); // halves
+      for (let v=3; v<5; v++) drawOhmTick(v, 11, 1.6); // wholes
+      for (let v=2.5; v<5; v+=1) drawOhmTick(v, 8, 1.2); // halves
+    })();
+
+    (function(){
+      for (let v=6; v<10; v++) drawOhmTick(v, 11, 1.6); // wholes
+      for (let v=5.5; v<10; v+=1) drawOhmTick(v, 8, 1.2); // halves
     })();
 
     // 10–15 : fifths (i.e., 11,12,13,14)
@@ -247,6 +262,22 @@
     (function(){ [120,140,160,180,250].forEach(v=> drawOhmTick(v, 10, 1.2)); })();
 
     (function(){ [300,400].forEach(v=> drawOhmTick(v, 11, 1.6)); })();
+
+    OHM_TICKS = OHM_TICKS.toSorted(function(a,b){
+      if (a === Infinity && b === Infinity) {
+        return 0;
+      }
+      else if (a === Infinity && b !== Infinity) {
+        return 1
+      }
+      else if (a !== Infinity && b === Infinity) {
+        return -1;
+      }
+      else if (a !== Infinity && b !== Infinity) {
+        return a - b;
+      }
+    });
+    // console.log(OHM_TICKS);
   }
 
   // ====== Needle / value mapping ======
@@ -335,6 +366,35 @@
     state.rounds += 1; updateStats();
   }
 
+  function nearestOhmTick(value) {
+    const val_mult = OHMS_MULT[state.range];
+    let lower = OHM_TICKS[0];
+    let upper = OHM_TICKS[OHM_TICKS.length-1];
+    for (let i = 1; i < OHM_TICKS.length; i++) {
+      if ((val_mult * OHM_TICKS[i]) <= value) {
+        lower = OHM_TICKS[i];
+      }
+
+      if (value <= (val_mult * OHM_TICKS[OHM_TICKS.length-i])) {
+        upper = OHM_TICKS[OHM_TICKS.length-i];
+      }
+    }
+    return {'lowerTick': lower, 'upperTick': upper};
+  }
+
+  // scale tolerance by linear fraction then convert to value
+  function fractionTolerance(value, tolerance){
+    const u = unitsForMode();
+    let fraction = valueToFraction(value);
+    let upperLimitFraction = fraction - tolerance;
+    let lowerLimitFraction = fraction + tolerance;
+    let upperLimit = fractionToValue(upperLimitFraction);
+    let lowerLimit = fractionToValue(lowerLimitFraction);
+    nearestTicks = nearestOhmTick(value);
+    console.log(`${fmtValue(lowerLimit,u)} < ${nearestTicks['lowerTick']} | ${fmtValue(value,u)} | ${nearestTicks['upperTick']} < ${fmtValue(upperLimit,u)}`);
+    return upperLimit - lowerLimit;
+  }
+
   function checkAnswer(){
     if (!document.getElementById('check').disabled) {
       const u = unitsForMode();
@@ -344,12 +404,14 @@
       }
       const tolPct = Number(tol.value);
       const target = state.trueValue;
-      const allowed = Math.max(0.001, (tolPct/100) * (state.mode==='ohms' ? Math.max(1, target) : currentLinearRangeValue()));
+      // const allowed = Math.max(0.001, (tolPct/100) * (state.mode==='ohms' ? Math.max(1, target) : currentLinearRangeValue()));
+      const allowed = Math.max(0.001, state.mode==='ohms' ? fractionTolerance(target, 0.005) : 0.015 * currentLinearRangeValue());
+      console.log(allowed);
       const diff = Math.abs(g - target);
       const win = diff <= allowed;
       if (win){
         state.correct += 1; state.streak += 1; document.getElementById('check').disabled = true;
-        feedback.innerHTML = `<span class="ok">✔ Correct! ${fmtValue(g,u)} within ±${tolPct}% (Δ ${fmtValue(diff,u)}).<br/>True: <b>${fmtValue(target,u)}</b></span>`;
+        feedback.innerHTML = `<span class="ok">✔ Correct! ${fmtValue(g,u)} within ±${fmtValue(allowed,u)} (Δ ${fmtValue(diff,u)}).<br/>True: <b>${fmtValue(target,u)}</b></span>`;
       } else {
         state.streak = 0;
         feedback.innerHTML = `<span class="no">✖ Not quite. You entered ${fmtValue(g,u)}; allowed ±${fmtValue(allowed,u)}.<br/>True: <b>${fmtValue(target,u)}</b></span>`;
@@ -384,7 +446,7 @@
   // ====== Events ======
   modeSel.addEventListener('change', ()=>{ setRangeOptions(); newRound(); });
   rangeSel.addEventListener('change', ()=>{ state.range = RANGES[state.mode][rangeSel.selectedIndex]; newRound(); });
-  tol.addEventListener('input', ()=> tolVal.textContent = tol.value );
+  // tol.addEventListener('input', ()=> tolVal.textContent = tol.value );
   document.getElementById('new').addEventListener('click', newRound);
   // document.getElementById('shuffle').addEventListener('click', shuffleRange);
   document.getElementById('reset').addEventListener('click', resetScore);

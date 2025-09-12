@@ -16,6 +16,7 @@ html, body {
   -webkit-overflow-scrolling: touch;
   overflow: auto;
   margin: 0;
+  background: var(--bg);
 }
 
 body {
@@ -32,6 +33,7 @@ body {
   grid-template-columns: 1fr;
   gap: 18px;
   padding: 18px;
+  background: var(--bg);
 }
 
 @media (max-width:889px) {
@@ -91,7 +93,7 @@ select, input[type="number"], input[type="text"] {
   padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid #2a335a;
-  /* background: #ffffff; */
+  background: var(--bg);
   color: var(--ink);
   font-size: 16px;
 }
