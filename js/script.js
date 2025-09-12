@@ -402,7 +402,7 @@
       if (isNaN(g)){
         feedback.innerHTML = `<span class="no">Enter a number (use suffixes like k, m, µ if you want).</span>`; return;
       }
-      const tolPct = Number(tol.value);
+      // const tolPct = Number(tol.value);
       const target = state.trueValue;
       // const allowed = Math.max(0.001, (tolPct/100) * (state.mode==='ohms' ? Math.max(1, target) : currentLinearRangeValue()));
       const allowed = Math.max(0.001, state.mode==='ohms' ? fractionTolerance(target, 0.005) : 0.015 * currentLinearRangeValue());
