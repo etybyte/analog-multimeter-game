@@ -12,7 +12,7 @@
   // Mode ranges
   const RANGES = {
     dcv: LINEAR_LABEL_SETS,     // Volts
-    dca: [5, 50, 500],     // milliamp ranges tied to same scales
+    dca: [5, 50, 500],     // milliAmps
     ohms: ["×1", "×10", "×100", "×1000"]
   };
 
@@ -32,6 +32,8 @@
   const title = document.getElementById('title');
   const modeSel = document.getElementById('mode');
   const rangeSel = document.getElementById('range');
+  const rangeUp = document.getElementById('rangeup');
+  const rangeDown = document.getElementById('rangedown');
   // const tol = document.getElementById('tol');
   // const tolVal = document.getElementById('tolVal');
   const guess = document.getElementById('guess');
@@ -426,6 +428,8 @@
     rangeSel.selectedIndex = i;
     state.range = opts[i];
 
+    rangeUp.textContent = `Range Up: ${nextRangeUp()['value']}`;
+    rangeDown.textContent = `Range Down: ${nextRangeDown()['value']}`;
     title.textContent = `Range: ${modeSel.options[modeSel.selectedIndex].text} - ${rangeSel.options[rangeSel.selectedIndex].text}`;
   }
 
@@ -438,6 +442,64 @@
     shuffleRange();
   }
 
+  function nextRangeUp() {
+    const opts = RANGES[state.mode];
+    let i = rangeSel.selectedIndex;
+    return {
+      index: Math.min(i+1, opts.length-1),
+      value: opts[Math.min(i+1, opts.length-1)]
+    };
+  }
+
+  function nextRangeDown() {
+    const opts = RANGES[state.mode];
+    let i = rangeSel.selectedIndex;
+    return {
+      index: Math.max(i-1, 0),
+      value: opts[Math.max(i-1, 0)]
+    };
+  }
+
+  function shiftRangeUp(){
+    const opts = RANGES[state.mode];
+    let i = rangeSel.selectedIndex;
+    if ((i + 1) < opts.length) {
+      console.log(`${opts[i]} -> ${opts[i+1]}`);
+      rangeSel.selectedIndex = i + 1;
+      state.range = opts[i+1];
+      setNeedleByFraction(valueToFraction(state.trueValue));
+      
+      rangeUp.textContent = `Range Up: ${nextRangeUp()['value']}`;
+      rangeDown.textContent = `Range Down: ${nextRangeDown()['value']}`;
+      title.textContent = `Range: ${modeSel.options[modeSel.selectedIndex].text} - ${rangeSel.options[rangeSel.selectedIndex].text}`;
+    } else {
+      console.log("Already at max range.");
+    }
+  }
+
+  function shiftRangeDown(){
+    const opts = RANGES[state.mode];
+    let i = rangeSel.selectedIndex;
+    if ((i - 1) >= 0) {
+      if (state.mode === "ohms" ? valueToFraction(state.trueValue) < valueToFraction(OHMS_MULT[opts[i-1]]) : (state.mode === "dca" ? valueToFraction(state.trueValue) < valueToFraction(opts[i-1] * 1e-3) : valueToFraction(state.trueValue) < valueToFraction(opts[i-1]))) {
+        console.log(`${opts[i]} -> ${opts[i-1]}`);
+        rangeSel.selectedIndex = i - 1;
+        state.range = opts[i-1];
+        setNeedleByFraction(valueToFraction(state.trueValue));
+        
+        rangeUp.textContent = `Range Up: ${nextRangeUp()['value']}`;
+        rangeDown.textContent = `Range Down: ${nextRangeDown()['value']}`;
+        title.textContent = `Range: ${modeSel.options[modeSel.selectedIndex].text} - ${rangeSel.options[rangeSel.selectedIndex].text}`;
+      } else {
+        state.streak = 0;
+        console.log("Uh oh, we've pegged the meter.");
+        feedback.innerHTML = `<span class="no">✖ Uh oh, We've pegged the meter.</span>`;
+      }
+    } else {
+      console.log("Already at min range.");
+    }
+  }
+
   function resetScore(){
     state.rounds = 0; state.correct = 0; state.streak = 0; updateStats(); feedback.textContent = '';
   }
@@ -446,6 +508,8 @@
   // ====== Events ======
   modeSel.addEventListener('change', ()=>{ setRangeOptions(); newRound(); });
   rangeSel.addEventListener('change', ()=>{ state.range = RANGES[state.mode][rangeSel.selectedIndex]; newRound(); });
+  rangeUp.addEventListener('click', shiftRangeUp);
+  rangeDown.addEventListener('click', shiftRangeDown);
   // tol.addEventListener('input', ()=> tolVal.textContent = tol.value );
   document.getElementById('new').addEventListener('click', newRound);
   // document.getElementById('shuffle').addEventListener('click', shuffleRange);
