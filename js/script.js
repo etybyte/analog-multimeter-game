@@ -11,14 +11,14 @@
 
   // Mode ranges
   const RANGES = {
-    dcv: LINEAR_LABEL_SETS,     // Volts
-    dca: [5, 50, 500],     // milliAmps
-    ohms: ["×1", "×10", "×100", "×1000"]
+    dcv: [0.1, 0.5, 2.5, 10, 50, 250, 1000],     // Volts
+    dca: [5, 50, 500, 10000],                    // milliAmps
+    ohms: ["×1", "×10", "×100", "×1000", "×10000"]
   };
 
   // Mid‑scale ohms K values for Ω mapping (f = 1/(1 + R/K))
-  const OHMS_K = { "×1": 20, "×10": 200, "×100": 2000, "×1000": 20000 };
-  const OHMS_MULT = {"×1": 1, "×10": 10, "×100": 100, "×1000": 1000}
+  const OHMS_K = { "×1": 20, "×10": 200, "×100": 2000, "×1000": 20000, "×10000": 200000};
+  const OHMS_MULT = {"×1": 1, "×10": 10, "×100": 100, "×1000": 1000, "×10000": 10000}
 
   let OHM_TICKS = [];
 
