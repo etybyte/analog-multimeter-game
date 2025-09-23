@@ -12,7 +12,7 @@
   // Mode ranges
   const RANGES = {
     dcv: [0.1, 0.5, 2.5, 10, 50, 250, 1000],     // Volts
-    dca: [5, 50, 500, 10000],                    // milliAmps
+    dca: [5, 50, 500],  // 10000                 // milliAmps
     ohms: ["×1", "×10", "×100", "×1000", "×10000"]
   };
 
@@ -23,7 +23,7 @@
   let OHM_TICKS = [];
 
   // ====== State ======
-  const state = { mode: 'dcv', range: 10, trueValue: 0, rounds: 0, correct: 0, streak: 0 };
+  const state = { mode: 'dcv', range: 10, trueValue: 0, rounds: 0, correct: 0, streak: 0, pegs: 0, accuracy: 100};
 
   // ====== DOM ======
   const app = document.getElementById('app');
@@ -41,6 +41,10 @@
   const statRounds = document.getElementById('stat-rounds');
   const statCorrect = document.getElementById('stat-correct');
   const statStreak = document.getElementById('stat-streak');
+  const statPegs = document.getElementById('stat-pegs');
+  const statAccuracy = document.getElementById('stat-accuracy');
+
+  const pegSize = parseFloat(window.getComputedStyle(statPegs, null).getPropertyValue('font-size'));
 
   // ====== Utilities ======
   function clamp(x,min,max){ return Math.max(min, Math.min(max, x)); }
@@ -157,17 +161,17 @@
     drawArc(R, '#3a4579', 8, .65);
 
     // ===== Linear tick grid =====
-    const maxRange = 250;
+    const maxRange = 50;
     const baseLinear = R - 6; // inside ring radius
-    for (let v = 0; v <= maxRange; v += 5){ // minors every 5, mids at 10s, majors at 50s
+    for (let v = 0; v <= maxRange; v += 1){ // 50 tick marks, mids at 5s, majors at 10s
       const f = v / maxRange;
       const degTop = fractionToTopDeg(f);
       const degCanvas = topDegToCanvasDeg(degTop);
-      const major = (v % 50 === 0);
-      const mid   = (!major && v % 25 === 0);
+      const major = (v % 10 === 0);
+      const mid   = (!major && v % 5 === 0);
       if (major)      drawTickAt(baseLinear, degCanvas, 18, 2.3, '#000000');
       else if (mid)   drawTickAt(baseLinear, degCanvas, 12, 1.8, '#000000');
-      else            drawTickAt(baseLinear, degCanvas,  7, 1.2, '#000000');
+      else            drawTickAt(baseLinear, degCanvas,  7, 1.2, '#333333');
     }
 
     // Stacked labels for 0–10, 0–50, 0–250
@@ -175,7 +179,7 @@
     const ranges = [10, 50, 250];
     ranges.forEach((range, idx) =>{
       const rr = labelRadii[idx];
-      const step = range === 10 ? 2 : (range === 50 ? 10 : 50);
+      const step = range / 5;
       for (let v = 0; v <= range; v += step){
         const f = v / range;
         const degCanvas = topDegToCanvasDeg(fractionToTopDeg(f));
@@ -189,7 +193,6 @@
     const K = OHMS_K['×1'];
 
     const ohmMajors = [Infinity, 2000, 1000, 500, 200, 100, 50, 30, 20, 10, 5, 2, 1, 0];
-    const ohmLabelSet = new Set([0,1,2,5,10,20,30,50,100,200,500,1000,2000]);
 
     function ohmDegCanvas(val){
       if (val === Infinity) return topDegToCanvasDeg(fractionToTopDeg(0));
@@ -209,7 +212,7 @@
       const isEdge = (v === Infinity || v === 0);
       const len = isEdge ? 18 : 18;
       drawOhmTick(v, len, 2.4);
-      if (v !== Infinity && ohmLabelSet.has(v)){
+      if (v !== Infinity){
         const lbl = v >= 1000 ? (v/1000)+'k' : String(v);
         drawLabel(ohmDegCanvas(v == 1000 ? v - 300 : v > 1000 ? v + 300 : v), v >= 1000 ? ohmLabelR + 24 : ohmLabelR, lbl, 'var(--ohm)');
       }
@@ -279,7 +282,6 @@
         return a - b;
       }
     });
-    // console.log(OHM_TICKS);
   }
 
   // ====== Needle / value mapping ======
@@ -366,6 +368,7 @@
     feedback.textContent = '';
     guess.value = '';
     state.rounds += 1; updateStats();
+    console.log(closestAccurateRead(state.trueValue));
   }
 
   function nearestOhmTick(value) {
@@ -381,19 +384,115 @@
         upper = OHM_TICKS[OHM_TICKS.length-i];
       }
     }
+
+    let half_tick = (lower + upper)/2;
+
+    if (value <= half_tick) upper = half_tick;
+    else lower = half_tick;
+
     return {'lowerTick': lower, 'upperTick': upper};
+  }
+
+  function nearestLinearTick(value) {
+    const span = currentLinearRangeValue();
+
+    const belowFrac = Math.floor(value * 50/span) / 50;
+    const aboveFrac = Math.ceil(value * 50/span) / 50;
+    const upper = fractionToValue(aboveFrac);
+    const lower = fractionToValue(belowFrac);
+    const half_tick = (upper + lower)/2;
+
+    if (value <= half_tick) upper = half_tick;
+    else lower = half_tick;
+
+    return {'lowerTick': lower, 'upperTick': upper};
+  }
+
+  function nearestTickMarks(value, count_half_ticks=true) {
+    let lower = 0;
+    let upper = 1e12;
+
+    if (state.mode === 'ohms') {
+      const val_mult = OHMS_MULT[state.range];
+      
+      lower = OHM_TICKS[0];
+      upper = OHM_TICKS[OHM_TICKS.length-1];
+
+      for (let i = 1; i < OHM_TICKS.length; i++) {
+        if ((val_mult * OHM_TICKS[i]) <= value) {
+          lower = OHM_TICKS[i];
+        }
+
+        if (value <= (val_mult * OHM_TICKS[OHM_TICKS.length-i])) {
+          upper = OHM_TICKS[OHM_TICKS.length-i];
+        }
+      }
+
+      if (count_half_ticks) {
+        const half_tick = (lower + upper)/2;
+
+        if (value <= val_mult * half_tick) upper = half_tick;
+        else lower = half_tick;
+      }
+
+    } else {
+      const span = currentLinearRangeValue();
+
+      const belowFrac = Math.floor(value * 50/span) / 50;
+      const aboveFrac = Math.ceil(value * 50/span) / 50;
+      
+      upper = fractionToValue(aboveFrac);
+      lower = fractionToValue(belowFrac);
+
+      if (count_half_ticks) {
+        const half_tick = (lower + upper)/2;
+
+        if (value <= half_tick) upper = half_tick;
+        else lower = half_tick;
+      }
+    }
+
+    if (count_half_ticks) {
+      const half_tick = (lower + upper)/2;
+
+      if (value <= half_tick) upper = half_tick;
+      else lower = half_tick;
+    }
+
+    return {'lowerTick': lower, 'upperTick': upper};
+  }
+
+  function closestAccurateRead(value) {
+
+    let nearestTicks = nearestTickMarks(value);
+    let closestDistance = Math.min(
+                            Math.abs(value - (nearestTicks['lowerTick'] * state.mode === 'ohms' ? OHMS_MULT[state.range] : 1)),
+                            Math.abs(value - (nearestTicks['upperTick'] * state.mode === 'ohms' ? OHMS_MULT[state.range] : 1))
+                          )
+
+    if (Math.abs(value - (nearestTicks['lowerTick'] * state.mode === 'ohms' ? OHMS_MULT[state.range] : 1)) < Math.abs(value - (nearestTicks['upperTick'] * state.mode === 'ohms' ? OHMS_MULT[state.range] : 1))) {
+      return nearestTicks['lowerTick'];
+    } else {
+      return nearestTicks['upperTick'];
+    }
+
   }
 
   // scale tolerance by linear fraction then convert to value
   function fractionTolerance(value, tolerance){
     const u = unitsForMode();
     let fraction = valueToFraction(value);
+
     let upperLimitFraction = fraction - tolerance;
     let lowerLimitFraction = fraction + tolerance;
+
     let upperLimit = fractionToValue(upperLimitFraction);
     let lowerLimit = fractionToValue(lowerLimitFraction);
-    nearestTicks = nearestOhmTick(value);
-    console.log(`${fmtValue(lowerLimit,u)} < ${nearestTicks['lowerTick']} | ${fmtValue(value,u)} | ${nearestTicks['upperTick']} < ${fmtValue(upperLimit,u)}`);
+
+    let nearestTicks = nearestOhmTick(value);
+    let closestDistance = Math.min(Math.abs(value - (nearestTicks['lowerTick'] * OHMS_MULT[state.range])), Math.abs(value - (nearestTicks['lowerTick'] * OHMS_MULT[state.range])))
+    console.log(`${fmtValue(lowerLimit,u)}, ${fmtValue(value - closestDistance,u)} < ${nearestTicks['lowerTick']} | ${fmtValue(value,u)} <within ${upperLimit - lowerLimit}, ${fmtValue(closestDistance,u)}> | ${nearestTicks['upperTick']} < ${fmtValue(value + closestDistance,u)}, ${fmtValue(upperLimit,u)}`);
+    
     return upperLimit - lowerLimit;
   }
 
@@ -410,9 +509,23 @@
       const allowed = Math.max(0.00001, state.mode==='ohms' ? fractionTolerance(target, 0.005) : 0.015 * currentLinearRangeValue());
       console.log(allowed);
       const diff = Math.abs(g - target);
+
+      const fractionDiff = clamp(Math.abs(valueToFraction(g) - valueToFraction(target)) * 3, 0, 1);
+      let round_score = (1 - fractionDiff) * 100;
+
+      const closestTarget = closestAccurateRead(target) * (state.mode === 'ohms' ? OHMS_MULT[state.range] : 1);
+
+      if (g == closestTarget || diff <= Math.abs(target - closestTarget)) {
+        console.log("Setting to 100", g, closestAccurateRead(target), closestTarget, diff, Math.abs(target - closestTarget), g == closestTarget, diff <= Math.abs(target - closestTarget));
+        round_score = 100;
+      }
+
+      document.getElementById('check').disabled = true;
+      state.accuracy = ((state.accuracy * (state.rounds-1))/state.rounds) + (round_score/state.rounds);
+
       const win = diff <= allowed;
       if (win){
-        state.correct += 1; state.streak += 1; document.getElementById('check').disabled = true;
+        state.correct += 1; state.streak += 1;
         feedback.innerHTML = `<span class="ok">✔ Correct! ${fmtValue(g,u)} within ±${fmtValue(allowed,u)} (Δ ${fmtValue(diff,u)}).<br/>True: <b>${fmtValue(target,u)}</b></span>`;
       } else {
         state.streak = 0;
@@ -492,8 +605,10 @@
         title.textContent = `Range: ${modeSel.options[modeSel.selectedIndex].text} - ${rangeSel.options[rangeSel.selectedIndex].text}`;
       } else {
         state.streak = 0;
+        state.pegs += 1;
         console.log("Uh oh, we've pegged the meter.");
         feedback.innerHTML = `<span class="no">✖ Uh oh, We've pegged the meter.</span>`;
+        updateStats();
       }
     } else {
       console.log("Already at min range.");
@@ -501,9 +616,17 @@
   }
 
   function resetScore(){
-    state.rounds = 0; state.correct = 0; state.streak = 0; updateStats(); feedback.textContent = '';
+    state.rounds = 0; state.correct = 0; state.streak = 0; state.pegs = 0; state.accuracy = 0; feedback.textContent = ''; updateStats(); newRound();
   }
-  function updateStats(){ statRounds.textContent = state.rounds; statCorrect.textContent = state.correct; statStreak.textContent = state.streak; }
+  function updateStats(){
+    statRounds.textContent = state.rounds;
+    statCorrect.textContent = state.correct;
+    statStreak.textContent = state.streak;
+    statPegs.textContent = state.pegs;
+    statPegs.style.fontSize = state.pegs > 0 ? `${clamp(pegSize + (state.pegs * 2), pegSize, pegSize + 8)}px` : `${pegSize}px`;
+    statPegs.style.color = state.pegs > 0 ? 'red' : 'black';
+    statAccuracy.textContent = state.accuracy.toFixed(2);
+  }
 
   // ====== Events ======
   modeSel.addEventListener('change', ()=>{ setRangeOptions(); newRound(); });
