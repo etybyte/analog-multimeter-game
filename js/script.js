@@ -616,7 +616,7 @@
   }
 
   function resetScore(){
-    state.rounds = 0; state.correct = 0; state.streak = 0; state.pegs = 0; state.accuracy = 0; feedback.textContent = ''; updateStats(); newRound();
+    state.rounds = 0; state.correct = 0; state.streak = 0; state.pegs = 0; state.accuracy = 100; feedback.textContent = ''; updateStats(); newRound();
   }
   function updateStats(){
     statRounds.textContent = state.rounds;
