@@ -153,6 +153,11 @@ button:active {
   color: var(--muted);
 }
 
+.notice a {
+  font-size: 13px;
+  color: var(--muted);
+}
+
 .feedback {
   margin-top: 10px;
   font-size: 14px;
