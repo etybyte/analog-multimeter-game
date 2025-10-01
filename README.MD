@@ -1,6 +1,7 @@
 # Analog Multimeter Game
 
 A simple web app / game to practice reading measurements on typical analog multimeter scales.
+[current version here](https://etybyte.github.io/analog-multimeter-game/)
 
 ## Description
 
